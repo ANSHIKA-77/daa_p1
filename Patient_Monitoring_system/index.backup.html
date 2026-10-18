@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Monitoring System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .stats-summary {
+
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 20px;
+
+            margin-bottom: 40px;
+
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #333;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-number.high-risk {
+            color: #ef4444;
+        }
+
+        .stat-number.medium-risk {
+            color: #f97316;
+        }
+
+        .stat-number.low-risk {
+            color: #22c55e;
+        }
+
+        .patients-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-top: 0;
+            min-width: 0;
+        }
+
+        .dashboard-left {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .patient-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border-left: 5px solid #667eea;
+            min-width: 0;
+        }
+
+        .patient-card.high-risk {
+            border-left-color: #ef4444;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+        }
+
+        .patient-card.medium-risk {
+            border-left-color: #f97316;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.2);
+        }
+
+        .patient-card.low-risk {
+            border-left-color: #22c55e;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+        }
+
+        .patient-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes cardShufflePulse {
+            0% { transform: scale(0.97); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7); }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0.35); }
+            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); }
+        }
+
+        .patient-card.just-shuffled {
+            animation: cardShufflePulse 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+            outline: 2px solid #6366f1;
+        }
+
+        .triage-rank-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #334155;
+            color: #f8fafc;
+            font-size: 0.78em;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 999px;
+            letter-spacing: 0.5px;
+        }
+
+        .triage-rank-badge.top-rank {
+            background: #ef4444;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .patient-id {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .risk-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .risk-badge.high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .risk-badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .risk-badge.low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .scores-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .predicted-risk {
+            background: #f3f4f6;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            color: #333;
+            border-left: 4px solid #667eea;
+        }
+
+        .patient-card.high-risk .predicted-risk {
+            border-left-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .patient-card.medium-risk .predicted-risk {
+            border-left-color: #f97316;
+            background: #fef3c7;
+        }
+
+        .patient-card.low-risk .predicted-risk {
+            border-left-color: #22c55e;
+            background: #dcfce7;
+        }
+
+        .score {
+            flex: 1;
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .score-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .vitals-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .vital-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            color: #555;
+        }
+
+        .vital-label {
+            font-weight: 500;
+        }
+
+        .vital-value {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .last-update {
+            text-align: center;
+            color: white;
+            font-size: 0.95em;
+            opacity: 0.8;
+        }
+
+        .edit-section {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .edit-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        .edit-toggle input {
+            margin-right: 10px;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .edit-toggle span {
+            user-select: none;
+        }
+
+        .edit-panel {
+            margin-top: 15px;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        .slider-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .slider-group input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+        }
+
+        .slider-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+
+        .slider-group input[type="range"]::-moz-range-thumb:hover {
+            background: #764ba2;
+        }
+
+        .edit-button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-size: 0.95em;
+            text-transform: uppercase;
+        }
+
+        .edit-button:hover {
+            background: #764ba2;
+        }
+
+        .edit-button:active {
+            transform: scale(0.98);
+        }
+
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
+            gap: 24px;
+            align-items: start;
+            width: 100%;
+        }
+
+        .analytics-panel {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 20px;
+            min-width: 0;
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .analytics-header h2 {
+            font-size: 1.35em;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .analytics-alert-box {
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .alert-critical {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+
+        .alert-stable {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .analytics-vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .vital-mini-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .vital-mini-card .label {
+            font-size: 0.72em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.5px;
+        }
+
+        .vital-mini-card .val {
+            font-size: 1.25em;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        .vital-tabs {
+            display: flex;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .vital-tab-btn {
+            flex: 1;
+            padding: 7px 6px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .vital-tab-btn:hover {
+            color: #0f172a;
+        }
+
+        .vital-tab-btn.active {
+            background: white;
+            color: #4f46e5;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 310px;
+            margin-top: 8px;
+        }
+
+        .patient-card.selected-card {
+            outline: 3px solid #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .analytics-empty {
+            padding: 40px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            color: #64748b;
+        }
+
+        @media (max-width: 1080px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .analytics-panel {
+                position: static;
+                order: -1;
+                margin-bottom: 24px;
+            }
+
+            .patients-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                margin-bottom: 25px;
+            }
+
+            .patients-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .vital-tabs {
+                flex-wrap: wrap;
+            }
+
+            .vital-tab-btn {
+                min-width: calc(50% - 6px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .stats-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .patient-card {
+                padding: 18px;
+            }
+
+            .scores-container {
+                gap: 8px;
+            }
+
+            .score {
+                padding: 10px 6px;
+            }
+
+            .score-value {
+                font-size: 1.6em;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Patient Monitoring System</h1>
+            <p class="subtitle">Real-time qSOFA and NEWS2 Score Monitoring</p>
+        </header>
+
+        <div class="stats-summary">
+            <div class="stat-card">
+                <h3>Total Patients</h3>
+                <p class="stat-number" id="totalPatients">10</p>
+            </div>
+            <div class="stat-card">
+                <h3>High Risk</h3>
+                <p class="stat-number high-risk" id="highRiskCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Medium Risk</h3>
+                <p class="stat-number medium-risk" id="mediumRiskCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Low Risk</h3>
+                <p class="stat-number low-risk" id="lowRiskCount">0</p>
+            </div>
+        </div>
+
+        <div class="dashboard-layout">
+
+            <!-- LEFT SIDE -->
+            <div class="dashboard-left">
+                <div class="patients-grid" id="patientsGrid">
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div id="analyticsPanel" class="analytics-panel">
+                <div id="analyticsHeader" class="analytics-header">
+                    <div>
+                        <h2 id="analyticsTitle">Patient Analytics</h2>
+                        <div id="analyticsSub" style="font-size:0.85em;color:#64748b;margin-top:3px;">Select a patient
+                            to inspect live telemetry</div>
+                    </div>
+                    <div id="analyticsRiskBadge"></div>
+                </div>
+
+                <div id="analyticsAlert" class="analytics-alert-box alert-stable" style="display:none;"></div>
+
+                <div id="analyticsVitalsGrid" class="analytics-vitals-grid" style="display:none;"></div>
+
+                <div id="chartControls" style="display:none;">
+                    <div class="vital-tabs">
+                        <button class="vital-tab-btn active" id="tab-all" onclick="selectVitalTab('all')">📊 All
+                            Vitals</button>
+                        <button class="vital-tab-btn" id="tab-hr" onclick="selectVitalTab('hr')">❤️ Heart Rate</button>
+                        <button class="vital-tab-btn" id="tab-spo2" onclick="selectVitalTab('spo2')">🫁 SpO₂</button>
+                        <button class="vital-tab-btn" id="tab-temp" onclick="selectVitalTab('temp')">🌡️ Temp</button>
+                    </div>
+                </div>
+
+                <div id="analyticsEmpty" class="analytics-empty">
+                    <div>
+                        <h3 style="margin-bottom:8px;color:#334155;">No Patient Selected</h3>
+                        <p style="font-size:0.9em;color:#64748b;">Click "View Details" on any patient card to display
+                            real-time telemetry graphs and risk analysis.</p>
+                    </div>
+                </div>
+
+                <div id="chartContainer" class="chart-container" style="display:none;">
+                    <canvas id="patientChart"></canvas>
+                </div>
+            </div>
+
+
+        </div>
+
+        <div class="last-update">
+            Last updated:
+            <span id="lastUpdate">-</span>
+        </div>
+
+    </div>
+
+    <script>
+        let selectedPatientId = null;
+        let currentPatientsData = [];
+        // Track edited patient values
+        const editedPatients = {};
+        const manualEditMode = {};
+
+        // Initial update and then refresh every 15 seconds (increased for better UX)
+        updatePatients();
+        setInterval(updatePatients, 15000);
+        setInterval(refreshGraph, 15000);
+
+        function calculateQSOFA(v) {
+            let score = 0;
+            if (v.resp_rate >= 22) score++;
+            if (v.sbp <= 100) score++;
+            if (v.consciousness === 1) score++;
+            return score;
+        }
+
+        function calculateNEWS2(v) {
+            let score = 0;
+            const rr = v.resp_rate;
+            if (rr >= 25) score += 3;
+            else if (rr >= 21) score += 2;
+            else if (rr <= 8) score += 3;
+            else if (rr <= 11) score += 1;
+
+            const spo2 = v.spo2;
+            if (spo2 <= 91) score += 3;
+            else if (spo2 <= 93) score += 2;
+            else if (spo2 <= 95) score += 1;
+
+            const temp = v.temperature;
+            if (temp >= 39.1) score += 2;
+            else if (temp >= 38.1) score += 1;
+            else if (temp <= 35.0) score += 3;
+            else if (temp <= 36.0) score += 1;
+
+            const sbp = v.sbp;
+            if (sbp <= 90) score += 3;
+            else if (sbp <= 100) score += 2;
+            else if (sbp <= 110) score += 1;
+            else if (sbp >= 220) score += 3;
+
+            const hr = v.heart_rate;
+            if (hr >= 131) score += 3;
+            else if (hr >= 111) score += 2;
+            else if (hr >= 91) score += 1;
+            else if (hr <= 40) score += 3;
+            else if (hr <= 50) score += 1;
+
+            if (v.consciousness === 1) score += 3;
+
+            return score;
+        }
+
+        function calculateBayesianCritical(isHighRisk) {
+            const prior = 0.20;
+            let lk, ev;
+            if (isHighRisk) {
+                lk = 0.85;
+                ev = 0.85 * prior + 0.30 * (1 - prior);
+            } else {
+                lk = 0.15;
+                ev = 0.15 * prior + 0.70 * (1 - prior);
+            }
+            return (lk * prior) / ev;
+        }
+
+        function recalculatePatientScores(patient) {
+            const qsofa = calculateQSOFA(patient);
+            const news2 = calculateNEWS2(patient);
+            patient.qsofa = qsofa;
+            patient.news2 = news2;
+
+            const isHighRisk = (qsofa >= 2 || news2 >= 7);
+            const probCritical = calculateBayesianCritical(isHighRisk);
+            const stability = 1.0 - probCritical;
+            const responseTime = news2 / 20.0;
+
+            let mlLabel = 'Low';
+            let mlProb = 0.15;
+
+            // Clinical Escalation Criteria matching Python RiskPredictor
+            if (patient.spo2 < 88 || news2 >= 7 || qsofa >= 2) {
+                mlLabel = 'High';
+                mlProb = Math.min(0.98, 0.82 + Math.min(0.16, (news2 / 20.0) * 0.16));
+            } else if (news2 >= 4 || qsofa >= 1 || patient.heart_rate > 110 || patient.sbp <= 100 || patient.spo2 <= 93) {
+                mlLabel = 'Medium';
+                mlProb = 0.40 + (news2 / 20.0) * 0.28;
+            } else {
+                mlLabel = 'Low';
+                mlProb = Math.max(0.04, 0.18 - Math.max(0, patient.spo2 - 96) * 0.02);
+            }
+
+            patient.ml_risk = mlLabel;
+            patient.ml_prob = Math.round(mlProb * 1000) / 10;
+
+            const blendedStability = 0.5 * stability + 0.5 * (1.0 - mlProb);
+            const instability = Math.max(0.0, Math.min(1.0, 1.0 - blendedStability));
+            const clinicalUrgency = Math.min(responseTime * (20.0 / 15.0), 1.0);
+
+            let utility = 0.08 + 0.22 * Math.max(instability, clinicalUrgency);
+            if (mlLabel === 'High' || instability >= 0.7 || clinicalUrgency >= 0.7) {
+                utility = 0.88 + 0.08 * Math.max(instability, clinicalUrgency);
+            } else if (mlLabel === 'Medium' || instability >= 0.3 || clinicalUrgency >= 0.3) {
+                utility = 0.40 + 0.30 * Math.max(instability, clinicalUrgency);
+            }
+
+            // Critical Vitals Overrides (Top Triage Escalation)
+            if (patient.spo2 < 90 || patient.sbp < 85 || patient.heart_rate > 150 || patient.heart_rate < 45 || patient.resp_rate > 35 || patient.temperature > 40.0 || patient.temperature < 35.0) {
+                if (mlLabel === 'High' || instability >= 0.6) {
+                    utility = Math.max(utility, 0.95 + 0.04 * clinicalUrgency);
+                } else {
+                    utility = Math.max(utility, 0.78 + 0.06 * clinicalUrgency);
+                }
+            }
+
+            patient.utility = Math.min(0.99, Math.max(0.05, Math.round(utility * 100) / 100));
+        }
+
+        let lastShuffledPatientId = null;
+
+        function renderPatients(currentPatients) {
+            if (!currentPatients || !currentPatients.length) return;
+
+            // Apply any active overrides and recalculate clinical scores
+            currentPatients.forEach(patient => {
+                if (editedPatients[patient.id]) {
+                    Object.assign(patient, editedPatients[patient.id]);
+                }
+                recalculatePatientScores(patient);
+            });
+
+            // Update stats summary based on ML risk
+            let highRisk = 0, mediumRisk = 0, lowRisk = 0;
+            currentPatients.forEach(p => {
+                if (p.ml_risk === 'High') highRisk++;
+                else if (p.ml_risk === 'Medium') mediumRisk++;
+                else lowRisk++;
+            });
+
+            document.getElementById('highRiskCount').textContent = highRisk;
+            document.getElementById('mediumRiskCount').textContent = mediumRisk;
+            document.getElementById('lowRiskCount').textContent = lowRisk;
+
+            // Multi-tier clinical sorting:
+            // 1. Primary: Clinical Risk Category (High > Medium > Low)
+            // 2. Secondary: Utility descending (higher priority = shown first)
+            // 3. Tertiary Tie-breaker: NEWS2 score descending
+            const riskOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+            const sortedPatients = [...currentPatients].sort((a, b) => {
+                const riskDiff = (riskOrder[a.ml_risk] ?? 3) - (riskOrder[b.ml_risk] ?? 3);
+                if (riskDiff !== 0) return riskDiff;
+
+                const utilDiff = b.utility - a.utility;
+                if (Math.abs(utilDiff) > 0.001) return utilDiff;
+
+                return (b.news2 || 0) - (a.news2 || 0);
+            });
+
+            // Update patient cards in grid
+            const grid = document.getElementById('patientsGrid');
+            grid.innerHTML = '';
+
+            sortedPatients.forEach((patient, index) => {
+                const rank = index + 1;
+                const qsofaScore = patient.qsofa;
+                const news2Score = patient.news2;
+                const riskLevel = patient.ml_risk;
+                const riskProb = typeof patient.ml_prob === 'number' ? patient.ml_prob : 0;
+                const riskClass = riskLevel.toLowerCase();
+
+                const isShuffled = (patient.id === lastShuffledPatientId);
+                const isSelected = (selectedPatientId === patient.id);
+
+                const card = document.createElement('div');
+                card.id = `patient-card-${patient.id}`;
+                card.className = `patient-card ${riskClass}-risk${isSelected ? ' selected-card' : ''}${isShuffled ? ' just-shuffled' : ''}`;
+
+                let editSectionHTML = '';
+                if (manualEditMode[patient.id]) {
+                    const hrValue = editedPatients[patient.id]?.heart_rate ?? patient.heart_rate;
+                    const rrValue = editedPatients[patient.id]?.resp_rate ?? patient.resp_rate;
+                    const spo2Value = editedPatients[patient.id]?.spo2 ?? patient.spo2;
+                    const tempValue = editedPatients[patient.id]?.temperature ?? patient.temperature;
+                    const sbpValue = editedPatients[patient.id]?.sbp ?? patient.sbp;
+
+                    editSectionHTML = `
+                        <div class="edit-section">
+                            <label class="edit-toggle">
+                                <input type="checkbox" checked onchange="toggleEditMode(${patient.id}, event)">
+                                <span>Edit Values Manually</span>
+                            </label>
+
+                            <div class="edit-panel" style="display: block;">
+                                <div class="slider-group">
+                                    <label>Heart Rate: <span id="hr-value-${patient.id}">${hrValue}</span> bpm</label>
+                                    <input type="range" min="40" max="180" value="${hrValue}" 
+                                           id="hr-slider-${patient.id}" 
+                                           oninput="updateSliderDisplay(${patient.id}, 'heart_rate', this.value)">
+                                </div>
+
+                                <div class="slider-group">
+                                    <label>Resp. Rate: <span id="rr-value-${patient.id}">${rrValue}</span> bpm</label>
+                                    <input type="range" min="8" max="40" value="${rrValue}" 
+                                           id="rr-slider-${patient.id}" 
+                                           oninput="updateSliderDisplay(${patient.id}, 'resp_rate', this.value)">
+                                </div>
+
+                                <div class="slider-group">
+                                    <label>SpO2: <span id="spo2-value-${patient.id}">${spo2Value}</span>%</label>
+                                    <input type="range" min="70" max="100" value="${spo2Value}" 
+                                           id="spo2-slider-${patient.id}" 
+                                           oninput="updateSliderDisplay(${patient.id}, 'spo2', this.value)">
+                                </div>
+
+                                <div class="slider-group">
+                                    <label>Temperature: <span id="temp-value-${patient.id}">${typeof tempValue === 'number' ? tempValue.toFixed(1) : tempValue}</span>°C</label>
+                                    <input type="range" min="34" max="41" step="0.1" value="${tempValue}" 
+                                           id="temp-slider-${patient.id}" 
+                                           oninput="updateSliderDisplay(${patient.id}, 'temperature', this.value)">
+                                </div>
+
+                                <div class="slider-group">
+                                    <label>Systolic BP: <span id="sbp-value-${patient.id}">${sbpValue}</span> mmHg</label>
+                                    <input type="range" min="60" max="200" value="${sbpValue}" 
+                                           id="sbp-slider-${patient.id}" 
+                                           oninput="updateSliderDisplay(${patient.id}, 'sbp', this.value)">
+                                </div>
+
+                                <button class="edit-button" onclick="applyVitalChanges(${patient.id})">Apply Changes & Reprioritize</button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    editSectionHTML = `
+                        <div class="edit-section">
+                            <label class="edit-toggle">
+                                <input type="checkbox" onchange="toggleEditMode(${patient.id}, event)">
+                                <span>Edit Values Manually</span>
+                            </label>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="patient-header">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="patient-id">Patient #${patient.id}</div>
+                            <span class="triage-rank-badge ${rank === 1 ? 'top-rank' : ''}">Priority #${rank}</span>
+                        </div>
+                        <div class="risk-badge ${riskClass}">${riskLevel} Risk</div>
+                    </div>
+                    
+                    <div class="predicted-risk">
+                        <strong>ML Predicted Risk:</strong> ${riskLevel} (${riskProb.toFixed(1)}%)
+                    </div>
+                    
+                    <div class="scores-container">
+                        <div class="score">
+                            <div class="score-label">qSOFA</div>
+                            <div class="score-value">${qsofaScore}</div>
+                        </div>
+                        <div class="score">
+                            <div class="score-label">NEWS2</div>
+                            <div class="score-value">${news2Score}</div>
+                        </div>
+                        <div class="score">
+                            <div class="score-label">Utility</div>
+                            <div class="score-value">${patient.utility.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="vitals-section">
+                        <div class="vital-item">
+                            <span class="vital-label">Heart Rate:</span>
+                            <span class="vital-value" id="display-hr-${patient.id}">${patient.heart_rate} bpm</span>
+                        </div>
+                        <div class="vital-item">
+                            <span class="vital-label">Resp. Rate:</span>
+                            <span class="vital-value" id="display-rr-${patient.id}">${patient.resp_rate} bpm</span>
+                        </div>
+                        <div class="vital-item">
+                            <span class="vital-label">SpO2:</span>
+                            <span class="vital-value" id="display-spo2-${patient.id}">${patient.spo2}%</span>
+                        </div>
+                        <div class="vital-item">
+                            <span class="vital-label">Temperature:</span>
+                            <span class="vital-value" id="display-temp-${patient.id}">${typeof patient.temperature === 'number' ? patient.temperature.toFixed(1) : patient.temperature}°C</span>
+                        </div>
+                        <div class="vital-item">
+                            <span class="vital-label">Systolic BP:</span>
+                            <span class="vital-value" id="display-sbp-${patient.id}">${patient.sbp} mmHg</span>
+                        </div>
+                    </div>
+
+                    <button
+                        class="edit-button"
+                        style="margin-top:10px; background:#22c55e;"
+                        onclick="viewDetails(${patient.id}, true)">
+                        View Details
+                    </button>
+
+                    ${editSectionHTML}
+                `;
+                grid.appendChild(card);
+            });
+
+            // Update last update time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent =
+                now.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+            if (selectedPatientId === null && sortedPatients.length > 0) {
+                viewDetails(sortedPatients[0].id);
+            }
+        }
+
+        function updatePatients() {
+            // Fetch real patient data from the Flask API
+            fetch('/api/patients')
+                .then(response => response.json())
+                .then(currentPatients => {
+                    currentPatientsData = currentPatients;
+                    renderPatients(currentPatientsData);
+                })
+                .catch(error => {
+                    console.error('Error fetching patient data:', error);
+                    document.getElementById('patientsGrid').innerHTML = '<p>Error loading patient data. Make sure the server is running.</p>';
+                });
+        }
+
+        function toggleEditMode(patientId, event) {
+            manualEditMode[patientId] = event.target.checked;
+            if (!event.target.checked) {
+                // If user toggles off manual mode, reset override
+                delete editedPatients[patientId];
+                fetch(`/api/patient/${patientId}/reset`, { method: 'POST' })
+                    .catch(e => console.warn('Reset sync warning:', e));
+            }
+            renderPatients(currentPatientsData);
+        }
+
+        function updateSliderDisplay(patientId, vitalName, value) {
+            const displayId = getDisplayId(vitalName);
+            const valueSpanId = getValueSpanId(vitalName);
+
+            const numValue = vitalName === 'temperature' ? parseFloat(value) : parseInt(value);
+
+            // Update the value label in the slider
+            const valueSpan = document.getElementById(`${valueSpanId}-${patientId}`);
+            if (valueSpan) {
+                if (vitalName === 'temperature') {
+                    valueSpan.textContent = numValue.toFixed(1);
+                } else {
+                    valueSpan.textContent = numValue;
+                }
+            }
+        }
+
+        function applyVitalChanges(patientId) {
+            const hrSlider = document.getElementById(`hr-slider-${patientId}`);
+            const rrSlider = document.getElementById(`rr-slider-${patientId}`);
+            const spo2Slider = document.getElementById(`spo2-slider-${patientId}`);
+            const tempSlider = document.getElementById(`temp-slider-${patientId}`);
+            const sbpSlider = document.getElementById(`sbp-slider-${patientId}`);
+
+            if (!hrSlider || !rrSlider || !spo2Slider || !tempSlider || !sbpSlider) return;
+
+            const newValues = {
+                heart_rate: parseInt(hrSlider.value),
+                resp_rate: parseInt(rrSlider.value),
+                spo2: parseInt(spo2Slider.value),
+                temperature: parseFloat(tempSlider.value),
+                sbp: parseInt(sbpSlider.value)
+            };
+
+            // 1. Store the edited values so they persist
+            if (!editedPatients[patientId]) {
+                editedPatients[patientId] = {};
+            }
+            Object.assign(editedPatients[patientId], newValues);
+
+            // 2. Update patient object in currentPatientsData and recalculate scores immediately
+            const patient = currentPatientsData.find(p => p.id === patientId);
+            if (patient) {
+                Object.assign(patient, newValues);
+                recalculatePatientScores(patient);
+            }
+
+            // 3. Set visual highlight flag for the card that is moving
+            lastShuffledPatientId = patientId;
+
+            // 4. IMMEDIATELY re-sort and re-render the entire grid
+            renderPatients(currentPatientsData);
+
+            // 5. Update right-side analytics details panel if this patient was selected
+            if (selectedPatientId === patientId) {
+                viewDetails(patientId);
+            }
+
+            // 6. Clear shuffle highlight animation after 1.5s
+            setTimeout(() => {
+                if (lastShuffledPatientId === patientId) {
+                    lastShuffledPatientId = null;
+                }
+            }, 1500);
+
+            // 7. Post changes to backend so server-side simulation and charts also sync
+            fetch(`/api/patient/${patientId}/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newValues)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success && data.patients) {
+                    currentPatientsData = data.patients;
+                    renderPatients(currentPatientsData);
+                    if (selectedPatientId === patientId) {
+                        viewDetails(patientId);
+                    }
+                }
+            })
+            .catch(err => {
+                console.warn('Backend update sync note:', err);
+            });
+        }
+
+        function getValueSpanId(vitalName) {
+            const mapping = {
+                'heart_rate': 'hr-value',
+                'resp_rate': 'rr-value',
+                'spo2': 'spo2-value',
+                'temperature': 'temp-value',
+                'sbp': 'sbp-value'
+            };
+            return mapping[vitalName];
+        }
+
+        function getDisplayId(vitalName) {
+            const mapping = {
+                'heart_rate': 'display-hr',
+                'resp_rate': 'display-rr',
+                'spo2': 'display-spo2',
+                'temperature': 'display-temp',
+                'sbp': 'display-sbp'
+            };
+            return mapping[vitalName];
+        }
+
+
+        let chart = null;
+        let currentGraphData = null;
+        let currentVitalTab = 'all';
+
+        function selectVitalTab(tabName) {
+            currentVitalTab = tabName;
+            ['all', 'hr', 'spo2', 'temp'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.classList.toggle('active', t === tabName);
+            });
+            renderChart();
+        }
+
+        function viewDetails(patientId, isUserClick = false) {
+            selectedPatientId = patientId;
+
+            // Highlight selected card
+            document.querySelectorAll('.patient-card').forEach(c => c.classList.remove('selected-card'));
+            const selectedCard = document.getElementById(`patient-card-${patientId}`);
+            if (selectedCard) selectedCard.classList.add('selected-card');
+
+            if (isUserClick && window.innerWidth <= 1080) {
+                const panel = document.getElementById('analyticsPanel');
+                if (panel) {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
+            fetch(`/patient_graph/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentGraphData = data;
+                    const patient = currentPatientsData.find(p => p.id === patientId);
+                    if (!patient) return;
+
+                    // Reveal components, hide placeholder
+                    const emptyEl = document.getElementById("analyticsEmpty");
+                    if (emptyEl) emptyEl.style.display = "none";
+
+                    document.getElementById("analyticsAlert").style.display = "flex";
+                    document.getElementById("analyticsVitalsGrid").style.display = "grid";
+                    document.getElementById("chartControls").style.display = "block";
+                    document.getElementById("chartContainer").style.display = "block";
+
+                    // Header & Badge
+                    document.getElementById("analyticsTitle").textContent = `Patient #${patientId} Analytics`;
+                    document.getElementById("analyticsSub").textContent = `ICU Bed-${patientId} • Priority Utility: ${patient.utility.toFixed(3)}`;
+
+                    const badgeEl = document.getElementById("analyticsRiskBadge");
+                    badgeEl.className = `risk-badge ${patient.ml_risk.toLowerCase()}`;
+                    badgeEl.textContent = `${patient.ml_risk} Risk`;
+
+                    // Last recorded vitals
+                    const lastHR = data.heart_rate && data.heart_rate.length ? data.heart_rate[data.heart_rate.length - 1] : patient.heart_rate;
+                    const lastSpO2 = data.spo2 && data.spo2.length ? data.spo2[data.spo2.length - 1] : patient.spo2;
+                    const lastTemp = data.temperature && data.temperature.length ? data.temperature[data.temperature.length - 1] : patient.temperature;
+
+                    // Clinical Alert Banner
+                    const alertBox = document.getElementById("analyticsAlert");
+                    if (lastSpO2 < 90 || lastHR > 130 || lastTemp >= 39.5 || patient.sbp < 90 || patient.ml_risk === "High") {
+                        alertBox.className = "analytics-alert-box alert-critical";
+                        alertBox.innerHTML = `<span>🚨</span> <div><strong>Immediate Attention Required</strong><div style="font-size:0.85em;font-weight:normal;margin-top:2px;">Critical vital threshold breached or high risk predicted.</div></div>`;
+                    } else if (patient.ml_risk === "Medium" || lastHR > 105 || lastSpO2 < 94 || lastTemp >= 38.0) {
+                        alertBox.className = "analytics-alert-box alert-warning";
+                        alertBox.innerHTML = `<span>⚠️</span> <div><strong>Patient Health May Deteriorate</strong><div style="font-size:0.85em;font-weight:normal;margin-top:2px;">Elevated risk indicators. Continuous clinical monitoring advised.</div></div>`;
+                    } else {
+                        alertBox.className = "analytics-alert-box alert-stable";
+                        alertBox.innerHTML = `<span>✅</span> <div><strong>Patient Clinically Stable</strong><div style="font-size:0.85em;font-weight:normal;margin-top:2px;">Vital parameters within acceptable reference ranges.</div></div>`;
+                    }
+
+                    // Vitals Mini Grid
+                    document.getElementById("analyticsVitalsGrid").innerHTML = `
+                        <div class="vital-mini-card">
+                            <span class="label">Heart Rate</span>
+                            <span class="val" style="color: #ef4444;">${lastHR} <small style="font-size:0.6em;color:#64748b;font-weight:normal;">bpm</small></span>
+                        </div>
+                        <div class="vital-mini-card">
+                            <span class="label">Oxygen SpO₂</span>
+                            <span class="val" style="color: #3b82f6;">${typeof lastSpO2 === 'number' ? lastSpO2.toFixed(1) : lastSpO2}%</span>
+                        </div>
+                        <div class="vital-mini-card">
+                            <span class="label">Systolic BP</span>
+                            <span class="val" style="color: #10b981;">${patient.sbp} <small style="font-size:0.6em;color:#64748b;font-weight:normal;">mmHg</small></span>
+                        </div>
+                        <div class="vital-mini-card">
+                            <span class="label">Temperature</span>
+                            <span class="val" style="color: #f97316;">${typeof lastTemp === 'number' ? lastTemp.toFixed(1) : lastTemp}&deg;C</span>
+                        </div>
+                    `;
+
+                    renderChart();
+                })
+                .catch(err => {
+                    console.error("Error fetching patient graph:", err);
+                });
+        }
+
+        function renderChart() {
+            if (!currentGraphData || !currentGraphData.timestamps || !currentGraphData.timestamps.length) return;
+
+            const canvasEl = document.getElementById("patientChart");
+            if (!canvasEl) return;
+
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+
+            const labels = currentGraphData.timestamps.map((_, i) => `#${i + 1}`);
+
+            let datasets = [];
+            let scales = {
+                x: {
+                    title: { display: true, text: "Reading Sequence (#)", font: { size: 10, weight: "bold" } },
+                    ticks: { font: { size: 10 }, maxTicksLimit: 10 },
+                    grid: { color: "rgba(0,0,0,0.04)" }
+                }
+            };
+
+            if (currentVitalTab === 'hr') {
+                datasets.push({
+                    label: "Heart Rate (bpm)",
+                    data: currentGraphData.heart_rate,
+                    borderColor: "#ef4444",
+                    backgroundColor: "rgba(239, 68, 68, 0.12)",
+                    borderWidth: 2.5,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6,
+                    tension: 0.35,
+                    fill: true
+                });
+                scales.y = {
+                    title: { display: true, text: "Heart Rate (bpm)", color: "#ef4444", font: { size: 11, weight: "bold" } },
+                    ticks: { color: "#ef4444", font: { size: 10 } },
+                    suggestedMin: 50,
+                    suggestedMax: 150,
+                    grid: { color: "rgba(239, 68, 68, 0.08)" }
+                };
+            } else if (currentVitalTab === 'spo2') {
+                datasets.push({
+                    label: "SpO₂ (%)",
+                    data: currentGraphData.spo2,
+                    borderColor: "#3b82f6",
+                    backgroundColor: "rgba(59, 130, 246, 0.12)",
+                    borderWidth: 2.5,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6,
+                    tension: 0.35,
+                    fill: true
+                });
+                scales.y = {
+                    title: { display: true, text: "SpO₂ (%)", color: "#3b82f6", font: { size: 11, weight: "bold" } },
+                    ticks: { color: "#3b82f6", font: { size: 10 } },
+                    suggestedMin: 80,
+                    max: 100,
+                    grid: { color: "rgba(59, 130, 246, 0.08)" }
+                };
+            } else if (currentVitalTab === 'temp') {
+                datasets.push({
+                    label: "Temperature (°C)",
+                    data: currentGraphData.temperature,
+                    borderColor: "#f97316",
+                    backgroundColor: "rgba(249, 115, 22, 0.12)",
+                    borderWidth: 2.5,
+                    pointRadius: 3.5,
+                    pointHoverRadius: 6,
+                    tension: 0.35,
+                    fill: true
+                });
+                scales.y = {
+                    title: { display: true, text: "Temperature (°C)", color: "#f97316", font: { size: 11, weight: "bold" } },
+                    ticks: { color: "#f97316", font: { size: 10 } },
+                    suggestedMin: 35.0,
+                    suggestedMax: 41.0,
+                    grid: { color: "rgba(249, 115, 22, 0.08)" }
+                };
+            } else {
+                // All Vitals: Clean dual-axis (Left: HR, Right: SpO2), no overlapping 3rd axis!
+                datasets.push({
+                    label: "Heart Rate (bpm)",
+                    data: currentGraphData.heart_rate,
+                    borderColor: "#ef4444",
+                    backgroundColor: "rgba(239, 68, 68, 0.06)",
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.35,
+                    yAxisID: "yHR"
+                });
+                datasets.push({
+                    label: "SpO₂ (%)",
+                    data: currentGraphData.spo2,
+                    borderColor: "#3b82f6",
+                    backgroundColor: "rgba(59, 130, 246, 0.06)",
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.35,
+                    yAxisID: "ySpO2"
+                });
+                scales.yHR = {
+                    type: "linear",
+                    position: "left",
+                    title: { display: true, text: "HR (bpm)", color: "#ef4444", font: { size: 10, weight: "bold" } },
+                    ticks: { color: "#ef4444", font: { size: 10 } },
+                    suggestedMin: 50,
+                    suggestedMax: 150,
+                    grid: { color: "rgba(239, 68, 68, 0.06)" }
+                };
+                scales.ySpO2 = {
+                    type: "linear",
+                    position: "right",
+                    title: { display: true, text: "SpO₂ (%)", color: "#3b82f6", font: { size: 10, weight: "bold" } },
+                    ticks: { color: "#3b82f6", font: { size: 10 } },
+                    suggestedMin: 80,
+                    max: 100,
+                    grid: { drawOnChartArea: false }
+                };
+            }
+
+            chart = new Chart(canvasEl, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    animation: { duration: 250 },
+                    plugins: {
+                        legend: {
+                            position: "top",
+                            labels: {
+                                font: { size: 11 },
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                padding: 12
+                            }
+                        },
+                        tooltip: {
+                            mode: "index",
+                            intersect: false,
+                            padding: 10
+                        }
+                    },
+                    scales: scales
+                }
+            });
+        }
+
+        function refreshGraph() {
+            if (selectedPatientId !== null) {
+                viewDetails(selectedPatientId);
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>
